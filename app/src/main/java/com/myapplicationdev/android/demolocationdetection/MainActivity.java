@@ -22,12 +22,16 @@ import com.google.android.gms.tasks.Task;
 
 public class MainActivity extends AppCompatActivity {
     FusedLocationProviderClient client;
-    Button btnGetLastLocation;
+    Button btnGetLastLocation, btnGetLocationUpdate, btnRemoveLocationUpdate;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         btnGetLastLocation = findViewById(R.id.btnGetLastLocation);
+        btnGetLocationUpdate = findViewById(R.id.btnGetLocationUpdate);
+        btnRemoveLocationUpdate = findViewById(R.id.btnRemoveLocationUpdate);
+
         client = LocationServices.getFusedLocationProviderClient(MainActivity.this);
 
         int permissionCheck = ContextCompat.checkSelfPermission(MainActivity.this,
@@ -60,16 +64,58 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             });
-        }
-        else {
-                Log.e("GMap - Permission", "GPS accesss has not been granted");
-                ActivityCompat.requestPermissions(MainActivity.this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 0);
+
+            final LocationRequest mLocationRequest = LocationRequest.create();
+            mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            mLocationRequest.setInterval(10000);
+            mLocationRequest.setFastestInterval(5000);
+            mLocationRequest.setSmallestDisplacement(100);
+
+            final LocationCallback mLocationCallback = new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult locationResult) {
+                    if (locationResult != null) {
+                        Location data = locationResult.getLastLocation();
+                        double lat = data.getLatitude();
+                        double lng = data.getLongitude();
+                        String msg = "Lat :" + lat +
+                                " Lng : " + lng;
+                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                ;
+            };
+
+            btnGetLocationUpdate.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (checkPermission()) {
+                        client.requestLocationUpdates(mLocationRequest,mLocationCallback,null);
+                    }
+
+
+                }
+            });
+
+            btnRemoveLocationUpdate.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (checkPermission()){
+                    client.removeLocationUpdates(mLocationCallback);
+                    Toast.makeText(MainActivity.this, "Location Update Removed", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+
+        } else {
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 0);
         }
 
     }
 
-    private boolean checkPermission(){
+    private boolean checkPermission() {
         int permissionCheck_Coarse = ContextCompat.checkSelfPermission(
                 MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION);
         int permissionCheck_Fine = ContextCompat.checkSelfPermission(
@@ -82,4 +128,5 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
+
 }
